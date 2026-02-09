@@ -1,0 +1,447 @@
+================================================================================
+BATCHRUNNER CHEAT SHEET
+================================================================================
+
+QUICK START
+-----------
+1. Create batch.json with commands
+2. Run: python batchrunner.py run batch.json
+3. Add --verbose for detailed output
+
+================================================================================
+COMMON COMMANDS
+--------------------------------------------------------------------------------
+
+Execute Batch:
+  python batchrunner.py run batch.json
+  python batchrunner.py run batch.json --verbose
+  python batchrunner.py run batch.json --dry-run
+
+Validate Configuration:
+  python batchrunner.py validate batch.json
+
+Generate Report:
+  python batchrunner.py run batch.json --report text
+  python batchrunner.py run batch.json --report json
+  python batchrunner.py run batch.json --report markdown
+
+Continue on Failure:
+  python batchrunner.py run batch.json --continue-on-failure
+
+================================================================================
+CONFIGURATION FILE FORMAT (JSON)
+--------------------------------------------------------------------------------
+
+Basic Structure:
+  {
+    "commands": [
+      {
+        "name": "command-id",
+        "command": "shell command to execute"
+      }
+    ]
+  }
+
+With Dependencies:
+  {
+    "commands": [
+      {"name": "build", "command": "npm run build"},
+      {"name": "test", "command": "npm test", "depends_on": ["build"]}
+    ]
+  }
+
+All Options:
+  {
+    "name": "my-command",
+    "command": "shell command",
+    "depends_on": ["dep1", "dep2"],
+    "working_dir": "/path/to/dir",
+    "env": {"VAR": "value"},
+    "timeout": 300,
+    "retry_count": 3,
+    "retry_delay": 5,
+    "failure_strategy": "abort"
+  }
+
+================================================================================
+CLI FLAGS & OPTIONS
+--------------------------------------------------------------------------------
+
+Global Options:
+  --version              Show version
+  -h, --help            Show help message
+
+Run Command Options:
+  --verbose, -v         Verbose output
+  --dry-run             Show what would execute without running
+  --continue-on-failure Continue even if commands fail
+  --report FORMAT       Generate report (text, json, markdown)
+
+================================================================================
+PYTHON API
+--------------------------------------------------------------------------------
+
+Import:
+  from batchrunner import BatchRunner
+
+Basic Usage:
+  runner = BatchRunner()
+  runner.add_command("build", "npm run build")
+  runner.add_command("test", "npm test", depends_on=["build"])
+  result = runner.run()
+
+With Options:
+  runner = BatchRunner(verbose=True, dry_run=False)
+  runner.add_command(
+      name="deploy",
+      command="./deploy.sh",
+      depends_on=["build", "test"],
+      working_dir="/opt/app",
+      env={"ENV": "prod"},
+      timeout=300,
+      retry_count=3,
+      retry_delay=5
+  )
+
+Load from File:
+  from pathlib import Path
+  runner = BatchRunner()
+  runner.load_from_file(Path("batch.json"))
+  result = runner.run()
+
+Validate:
+  is_valid, errors = runner.validate_dependencies()
+  if not is_valid:
+      for error in errors:
+          print(error)
+
+Generate Report:
+  report = runner.generate_report(format="text")
+  report = runner.generate_report(format="json")
+  report = runner.generate_report(format="markdown")
+
+Check Results:
+  result = runner.run()
+  print(f"Success: {result['success']}")
+  print(f"Total: {result['total_commands']}")
+  print(f"Executed: {result['executed']}")
+  print(f"Successful: {result['successful']}")
+  print(f"Failed: {result['failed']}")
+  print(f"Duration: {result['duration']:.2f}s")
+
+================================================================================
+CONFIGURATION OPTIONS
+--------------------------------------------------------------------------------
+
+Required Fields:
+  name                   Unique command identifier (string)
+  command                Shell command to execute (string)
+
+Optional Fields:
+  depends_on             List of command names to wait for (array)
+  working_dir            Working directory for command (string)
+  env                    Environment variables (object)
+  timeout                Timeout in seconds (integer)
+  retry_count            Number of retries on failure (integer)
+  retry_delay            Delay between retries in seconds (integer)
+  failure_strategy       How to handle failures (string)
+                         Values: "abort", "continue", "retry"
+
+================================================================================
+DEPENDENCY PATTERNS
+--------------------------------------------------------------------------------
+
+No Dependencies (Parallel):
+  [A] [B] [C]  <- All run at same time
+
+Linear (Sequential):
+  [A] -> [B] -> [C]  <- Each waits for previous
+  
+  {"name": "A", "command": "..."},
+  {"name": "B", "command": "...", "depends_on": ["A"]},
+  {"name": "C", "command": "...", "depends_on": ["B"]}
+
+Fan-Out (Parallel after one):
+  [A] -> [B] [C] [D]  <- B, C, D run in parallel after A
+  
+  {"name": "A", "command": "..."},
+  {"name": "B", "command": "...", "depends_on": ["A"]},
+  {"name": "C", "command": "...", "depends_on": ["A"]},
+  {"name": "D", "command": "...", "depends_on": ["A"]}
+
+Fan-In (Multiple dependencies):
+  [A] [B] -> [C]  <- C waits for both A and B
+  
+  {"name": "A", "command": "..."},
+  {"name": "B", "command": "..."},
+  {"name": "C", "command": "...", "depends_on": ["A", "B"]}
+
+Diamond Pattern:
+  [A] -> [B] [C] -> [D]  <- D waits for B and C, which wait for A
+  
+  {"name": "A", "command": "..."},
+  {"name": "B", "command": "...", "depends_on": ["A"]},
+  {"name": "C", "command": "...", "depends_on": ["A"]},
+  {"name": "D", "command": "...", "depends_on": ["B", "C"]}
+
+================================================================================
+INTEGRATION WITH OTHER TOOLS
+--------------------------------------------------------------------------------
+
+With AgentHealth:
+  from agenthealth import AgentHealth
+  from batchrunner import BatchRunner
+  
+  health = AgentHealth()
+  runner = BatchRunner()
+  
+  session_id = "build_123"
+  health.start_session("ATLAS", session_id=session_id)
+  result = runner.run()
+  health.end_session("ATLAS", session_id=session_id)
+
+With SynapseLink:
+  from synapselink import quick_send
+  from batchrunner import BatchRunner
+  
+  runner = BatchRunner()
+  result = runner.run()
+  
+  if result["success"]:
+      quick_send("TEAM", "Pipeline Complete", "All commands succeeded")
+  else:
+      quick_send("FORGE,LOGAN", "Pipeline Failed", f"{result['failed']} failed", priority="HIGH")
+
+With SessionReplay:
+  from sessionreplay import SessionReplay
+  from batchrunner import BatchRunner
+  
+  replay = SessionReplay()
+  runner = BatchRunner()
+  
+  session_id = replay.start_session("ATLAS", task="Build pipeline")
+  result = runner.run()
+  replay.log_output(session_id, runner.generate_report(format="json"))
+  replay.end_session(session_id, status="COMPLETED" if result["success"] else "FAILED")
+
+With ErrorRecovery:
+  from errorrecovery import with_recovery
+  from batchrunner import BatchRunner
+  
+  @with_recovery(max_attempts=3, strategy="retry")
+  def run_pipeline():
+      runner = BatchRunner()
+      runner.load_from_file(Path("batch.json"))
+      return runner.run()
+  
+  result = run_pipeline()
+
+With TokenTracker:
+  from tokentracker import TokenTracker
+  from batchrunner import BatchRunner
+  
+  tracker = TokenTracker()
+  runner = BatchRunner()
+  
+  # Track execution
+  result = runner.run()
+  tracker.log_operation("pipeline", duration=result["duration"])
+
+================================================================================
+ENVIRONMENT VARIABLES
+--------------------------------------------------------------------------------
+
+Set Per-Command:
+  {
+    "name": "deploy",
+    "command": "deploy.sh",
+    "env": {
+      "DEPLOY_ENV": "staging",
+      "API_KEY": "key-123",
+      "REGION": "us-west-2"
+    }
+  }
+
+Access in Command:
+  command: "echo $DEPLOY_ENV"       # Unix/Linux/macOS
+  command: "echo %DEPLOY_ENV%"      # Windows cmd
+  command: "echo $env:DEPLOY_ENV"   # Windows PowerShell
+
+================================================================================
+FAILURE STRATEGIES
+--------------------------------------------------------------------------------
+
+Abort on Failure (Default):
+  python batchrunner.py run batch.json
+  # Stops at first failure
+
+Continue on Failure:
+  python batchrunner.py run batch.json --continue-on-failure
+  # Executes all commands regardless
+
+Retry on Failure:
+  {
+    "name": "flaky",
+    "command": "curl api.example.com",
+    "retry_count": 3,
+    "retry_delay": 5
+  }
+  # Retries up to 3 times with 5s delay
+
+================================================================================
+TIMEOUT CONTROL
+--------------------------------------------------------------------------------
+
+Set Timeout:
+  {
+    "name": "long-task",
+    "command": "slow-script.sh",
+    "timeout": 600
+  }
+  # Kills after 10 minutes (600 seconds)
+
+Default Behavior:
+  # No timeout by default - commands run until completion
+
+Best Practices:
+  - Set timeout for network requests (30-60s)
+  - Set timeout for builds (5-10 minutes)
+  - Set timeout for tests (based on suite size)
+  - Don't set timeout for interactive commands
+
+================================================================================
+TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+Error: "Command not found"
+  -> Ensure command is in PATH or use absolute path
+  -> Check working_dir is correct
+
+Error: "Circular dependency detected"
+  -> Review dependency chain for cycles
+  -> Use validate command to check before running
+
+Error: "Timeout after Xs"
+  -> Increase timeout value
+  -> Optimize command execution
+  -> Check for hung processes
+
+Error: "Permission denied"
+  -> Check file permissions (chmod +x)
+  -> Run with appropriate user/sudo if needed
+
+Commands fail intermittently:
+  -> Enable retry with backoff
+  -> Check network connectivity
+  -> Review system resources
+
+Parallel execution not working:
+  -> Ensure commands have no dependencies
+  -> Check that dependency validation passes
+
+================================================================================
+PERFORMANCE TIPS
+--------------------------------------------------------------------------------
+
+Maximize Parallelism:
+  - Remove unnecessary dependencies
+  - Group independent commands
+  - Use depends_on only when required
+
+Optimize Individual Commands:
+  - Use --dry-run to test configuration first
+  - Set appropriate timeouts
+  - Enable retry for flaky operations
+  - Use local caches where possible
+
+Monitor Execution:
+  - Use --verbose to see execution flow
+  - Generate reports to analyze performance
+  - Track duration of each command
+
+================================================================================
+COMMON USE CASES
+--------------------------------------------------------------------------------
+
+CI/CD Pipeline:
+  Build -> Test -> Deploy with Docker
+  
+Web Application Build:
+  Install deps -> Lint + Test (parallel) -> Build -> Deploy
+  
+Microservices Deployment:
+  Build all services (parallel) -> Test -> Deploy staging -> Deploy prod
+  
+Database Migration:
+  Backup -> Migrate -> Validate -> Restart services
+  
+Test Suite Execution:
+  Unit tests + Integration tests (parallel) -> E2E tests
+  
+Development Setup:
+  Install deps -> Setup DB -> Migrate -> Seed -> Start services
+
+================================================================================
+KEYBOARD SHORTCUTS
+--------------------------------------------------------------------------------
+
+Terminal:
+  Ctrl+C                 Cancel execution (graceful stop)
+  Ctrl+Z                 Suspend process (Unix/Linux)
+
+During Execution:
+  # No interactive shortcuts - commands run non-interactively
+  # Use timeout or --dry-run for safety
+
+================================================================================
+RESOURCES
+--------------------------------------------------------------------------------
+
+Documentation:   
+  README.md              Main documentation
+  EXAMPLES.md            10+ usage examples
+  CHEAT_SHEET.txt        This file
+  INTEGRATION_PLAN.md    Team Brain integration guide
+
+GitHub:          https://github.com/DonkRonk17/BatchRunner
+Issues:          https://github.com/DonkRonk17/BatchRunner/issues
+Team Brain:      Post in THE_SYNAPSE/active/
+
+Built by:        ATLAS (Team Brain)
+For:             Logan Smith / Metaphy LLC
+License:         MIT
+
+================================================================================
+QUICK REFERENCE CARD
+--------------------------------------------------------------------------------
+
+Most Common Commands:
+  python batchrunner.py run batch.json
+  python batchrunner.py run batch.json --verbose
+  python batchrunner.py run batch.json --dry-run
+  python batchrunner.py validate batch.json
+
+Most Common Config:
+  {
+    "commands": [
+      {"name": "build", "command": "npm run build"},
+      {"name": "test", "command": "npm test", "depends_on": ["build"]}
+    ]
+  }
+
+Most Common Python:
+  from batchrunner import BatchRunner
+  runner = BatchRunner()
+  runner.add_command("task", "command")
+  result = runner.run()
+
+Most Common Issue:
+  Circular dependencies -> Use validate command
+
+Most Common Solution:
+  Enable retry for flaky commands:
+  {"retry_count": 3, "retry_delay": 5}
+
+================================================================================
+END OF CHEAT SHEET
+================================================================================

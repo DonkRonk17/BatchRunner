@@ -1,0 +1,17 @@
+# BatchRunner - Zero External Dependencies
+# 
+# This tool uses Python standard library only.
+# No external packages required.
+#
+# Minimum Python version: 3.7+
+#
+# Standard library modules used:
+# - argparse (CLI interface)
+# - json (configuration files)
+# - subprocess (command execution)
+# - threading (parallel execution)
+# - pathlib (file path handling)
+# - time (timing and delays)
+# - datetime (timestamps)
+# - tempfile (testing)
+# - unittest (testing)
