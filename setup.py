@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
-"""
-BatchRunner - Parallel command executor with dependency management
+"""Setup script for BatchRunner."""
 
-Setup script for pip installation.
-"""
-
-from pathlib import Path
 from setuptools import setup, find_packages
+from pathlib import Path
 
 # Read README for long description
 readme_file = Path(__file__).parent / "README.md"
-long_description = ""
-if readme_file.exists():
-    long_description = readme_file.read_text(encoding='utf-8')
+long_description = readme_file.read_text(encoding="utf-8") if readme_file.exists() else ""
 
 setup(
     name="batchrunner",
     version="1.0.0",
     author="ATLAS (Team Brain)",
-    author_email="logan@metaphy.com",
-    description="Parallel command executor with dependency management",
+    author_email="metaphy@example.com",
+    description="Command Batch Orchestration Made Simple",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/DonkRonk17/BatchRunner",
@@ -43,10 +37,9 @@ setup(
             "batchrunner=batchrunner:main",
         ],
     },
-    keywords="command executor batch parallel dependency automation ci-cd",
+    keywords="batch command runner orchestration automation cli",
     project_urls={
         "Bug Reports": "https://github.com/DonkRonk17/BatchRunner/issues",
         "Source": "https://github.com/DonkRonk17/BatchRunner",
-        "Documentation": "https://github.com/DonkRonk17/BatchRunner#readme",
     },
 )

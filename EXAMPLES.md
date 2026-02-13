@@ -1,665 +1,525 @@
 # BatchRunner - Usage Examples
 
-Complete guide with 10+ working examples covering all features.
-
-**Quick Navigation:**
-- [Example 1: Basic Usage](#example-1-basic-usage)
-- [Example 2: Dependency Chain](#example-2-dependency-chain)
-- [Example 3: Parallel Execution](#example-3-parallel-execution)
-- [Example 4: Error Handling](#example-4-error-handling)
-- [Example 5: Retry Logic](#example-5-retry-logic)
-- [Example 6: Environment Variables](#example-6-environment-variables)
-- [Example 7: Working Directories](#example-7-working-directories)
-- [Example 8: Timeout Control](#example-8-timeout-control)
-- [Example 9: CI/CD Pipeline](#example-9-cicd-pipeline)
-- [Example 10: Python API](#example-10-python-api)
-- [Example 11: Report Generation](#example-11-report-generation)
-- [Example 12: Dry Run Mode](#example-12-dry-run-mode)
-
----
-
-## Example 1: Basic Usage
-
-**Scenario:** First time using BatchRunner - execute two simple commands.
-
-**Configuration (`basic.json`):**
-
-```json
-{
-  "commands": [
-    {"name": "hello", "command": "echo Hello from BatchRunner"},
-    {"name": "timestamp", "command": "date"}
-  ]
-}
-```
-
-**Execute:**
-
-```bash
-python batchrunner.py run basic.json --verbose
-```
-
-**Expected Output:**
-
-```
-[OK] Dependency validation passed
-[OK] Execution plan: 1 groups
-  Group 1: hello, timestamp
-
-[GROUP 1] Executing 2 commands...
-[RUN] hello: echo Hello from BatchRunner
-[RUN] timestamp: date
-
-======================================================================
-BATCHRUNNER EXECUTION REPORT
-======================================================================
-Total Commands: 2
-Successful: 2
-Failed: 0
-
-[OK] echo Hello from BatchRunner
-  Exit Code: 0
-  Duration: 0.02s
-
-[OK] date
-  Exit Code: 0
-  Duration: 0.01s
-======================================================================
-```
-
-**What You Learned:**
-- How to create a basic configuration file
-- Commands run in parallel (no dependencies)
-- All output is captured and reported
+Quick navigation:
+- [Example 1: Basic Sequential Execution](#example-1-basic-sequential-execution)
+- [Example 2: Parallel Batch Processing](#example-2-parallel-batch-processing)
+- [Example 3: With Automatic Retries](#example-3-with-automatic-retries)
+- [Example 4: Timeout Protection](#example-4-timeout-protection)
+- [Example 5: File Logging](#example-5-file-logging)
+- [Example 6: JSON Output for Analysis](#example-6-json-output-for-analysis)
+- [Example 7: Inline Commands](#example-7-inline-commands)
+- [Example 8: CI/CD Integration](#example-8-cicd-integration)
+- [Example 9: Multi-Step Deployment](#example-9-multi-step-deployment)
+- [Example 10: Database Operations](#example-10-database-operations)
+- [Example 11: Error Handling Strategies](#example-11-error-handling-strategies)
+- [Example 12: Performance Testing](#example-12-performance-testing)
+- [Example 13: Docker Container Management](#example-13-docker-container-management)
+- [Example 14: Git Workflow Automation](#example-14-git-workflow-automation)
+- [Example 15: Real Production Workflow](#example-15-real-production-workflow)
 
 ---
 
-## Example 2: Dependency Chain
+## Example 1: Basic Sequential Execution
 
-**Scenario:** Build → Test → Deploy pipeline where each step depends on the previous.
+**Scenario:** First time using the tool
 
-**Configuration (`pipeline.json`):**
-
-```json
-{
-  "commands": [
-    {"name": "build", "command": "echo Building application..."},
-    {"name": "test", "command": "echo Running tests...", "depends_on": ["build"]},
-    {"name": "deploy", "command": "echo Deploying to production...", "depends_on": ["test"]}
-  ]
-}
+**Create commands.txt:**
+```bash
+echo "Hello from BatchRunner"
+echo "Command 2"
+echo "Command 3"
 ```
 
-**Execute:**
-
+**Run:**
 ```bash
-python batchrunner.py run pipeline.json --verbose
+python batchrunner.py -f commands.txt
 ```
 
 **Expected Output:**
-
 ```
-[OK] Execution plan: 3 groups
-  Group 1: build
-  Group 2: test
-  Group 3: deploy
-
-[GROUP 1] Executing 1 commands...
-[RUN] build: echo Building application...
-
-[GROUP 2] Executing 1 commands...
-[RUN] test: echo Running tests...
-
-[GROUP 3] Executing 1 commands...
-[RUN] deploy: echo Deploying to production...
-```
-
-**What You Learned:**
-- How to create linear dependencies (A → B → C)
-- Commands execute sequentially
-- Each group waits for previous to complete
-
----
-
-## Example 3: Parallel Execution
-
-**Scenario:** Run lint, unit tests, and integration tests simultaneously.
-
-**Configuration (`parallel.json`):**
-
-```json
-{
-  "commands": [
-    {"name": "lint", "command": "echo Linting code..."},
-    {"name": "unit-tests", "command": "echo Running unit tests..."},
-    {"name": "integration-tests", "command": "echo Running integration tests..."}
-  ]
-}
-```
-
-**Execute:**
-
-```bash
-python batchrunner.py run parallel.json --verbose
-```
-
-**Expected Output:**
-
-```
-[OK] Execution plan: 1 groups
-  Group 1: lint, unit-tests, integration-tests
-
-[GROUP 1] Executing 3 commands...
-[RUN] lint: echo Linting code...
-[RUN] unit-tests: echo Running unit tests...
-[RUN] integration-tests: echo Running integration tests...
-
 ======================================================================
+BatchRunner v1.0 - Starting 3 commands
+Mode: sequential
+Retries: 0
+======================================================================
+... [all commands execute] ...
 Total Commands: 3
 Successful: 3
 Failed: 0
-Duration: 0.05s
-======================================================================
+Success Rate: 100.0%
 ```
 
 **What You Learned:**
-- Commands without dependencies run in parallel
-- Total time = slowest command (not sum of all)
-- Significant time savings on independent tasks
+- How to create a commands file
+- Basic sequential execution
+- Reading the summary output
 
 ---
 
-## Example 4: Error Handling
+## Example 2: Parallel Batch Processing
 
-**Scenario:** Handle command failures with abort-on-failure.
+**Scenario:** Convert 5 files simultaneously
 
-**Configuration (`error-abort.json`):**
+**Create convert-files.txt:**
+```bash
+python convert.py file1.dat file1.json
+python convert.py file2.dat file2.json
+python convert.py file3.dat file3.json
+python convert.py file4.dat file4.json
+python convert.py file5.dat file5.json
+```
 
+**Run:**
+```bash
+python batchrunner.py -f convert-files.txt --parallel
+```
+
+**Expected Output:**
+```
+Mode: parallel
+...
+Total Duration: 523.4ms  (vs ~2500ms sequential!)
+```
+
+**What You Learned:**
+- Parallel execution is 5x faster for independent tasks
+- Use --parallel flag for speed
+- All 5 conversions run simultaneously
+
+---
+
+## Example 3: With Automatic Retries
+
+**Scenario:** Unreliable API calls
+
+**Create api-calls.txt:**
+```bash
+curl https://api.example.com/endpoint1
+curl https://api.example.com/endpoint2
+curl https://api.example.com/endpoint3
+```
+
+**Run:**
+```bash
+python batchrunner.py -f api-calls.txt --retries 3 --retry-delay 2
+```
+
+**Expected Behavior:**
+- If a curl fails, it retries up to 3 times
+- 2-second delay between retries
+- Total: 4 attempts per command (initial + 3 retries)
+
+**What You Learned:**
+- --retries handles flaky commands
+- --retry-delay prevents hammering services
+- Automatic exponential backoff
+
+---
+
+## Example 4: Timeout Protection
+
+**Scenario:** Commands that might hang forever
+
+**Create risky-commands.txt:**
+```bash
+curl https://slow-api.example.com --max-time 10
+python long-running-script.py
+ping -c 100 example.com
+```
+
+**Run:**
+```bash
+python batchrunner.py -f risky-commands.txt --timeout 30
+```
+
+**Expected Behavior:**
+- Each command has 30-second max runtime
+- If command exceeds 30s, it's killed
+- Marked as failed with timeout error
+
+**What You Learned:**
+- Timeouts prevent infinite hangs
+- Good for unreliable external services
+- Can combine with --retries
+
+---
+
+## Example 5: File Logging
+
+**Scenario:** Need audit trail of what happened
+
+**Run:**
+```bash
+python batchrunner.py -f deploy.txt -l deploy-20260213.log
+```
+
+**Result: deploy-20260213.log**
+```
+[2026-02-13 12:00:00] [INFO] ======================================================================
+[2026-02-13 12:00:00] [INFO] BatchRunner v1.0 - Starting 5 commands
+[2026-02-13 12:00:00] [INFO] Mode: sequential
+...
+[2026-02-13 12:00:15] [SUCCESS] [OK] Command completed (1234.5ms)
+...
+```
+
+**What You Learned:**
+- -l flag enables file logging
+- Timestamped events for debugging
+- Can review logs later
+
+---
+
+## Example 6: JSON Output for Analysis
+
+**Scenario:** Need structured data for reporting
+
+**Run:**
+```bash
+python batchrunner.py -f tests.txt -o test-results.json
+```
+
+**Result: test-results.json**
 ```json
 {
-  "commands": [
-    {"name": "success", "command": "echo This will succeed"},
-    {"name": "failure", "command": "exit 1"},
-    {"name": "never-runs", "command": "echo This never executes", "depends_on": ["failure"]}
+  "summary": {
+    "total_commands": 10,
+    "successful": 9,
+    "failed": 1,
+    "success_rate": 90.0,
+    "total_duration_ms": 5234.2,
+    "avg_command_duration_ms": 523.4,
+    "mode": "sequential"
+  },
+  "results": [
+    {
+      "command": "pytest test_module.py",
+      "success": true,
+      "exit_code": 0,
+      "stdout": "...test output...",
+      "stderr": "",
+      "duration_ms": 1234.5,
+      "timestamp": "2026-02-13T12:00:00"
+    }
   ]
 }
 ```
 
-**Execute:**
+**What You Learned:**
+- -o flag exports JSON
+- Perfect for CI/CD integration
+- Structured data for analysis
 
+---
+
+## Example 7: Inline Commands
+
+**Scenario:** Quick one-off task without creating a file
+
+**Run:**
 ```bash
-python batchrunner.py run error-abort.json --verbose
+python batchrunner.py -c \
+  "echo 'Starting...'" \
+  "python script1.py" \
+  "python script2.py" \
+  "echo 'Done!'"
+```
+
+**What You Learned:**
+- -c flag for inline commands
+- No need to create files for simple tasks
+- Great for ad-hoc automation
+
+---
+
+## Example 8: CI/CD Integration
+
+**Scenario:** GitHub Actions workflow
+
+**Create .github/workflows/test.yml:**
+```yaml
+name: Test Suite
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Run Tests
+        run: |
+          python batchrunner.py -f ci-tests.txt --parallel -o results.json
+      
+      - name: Upload Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: results.json
+```
+
+**ci-tests.txt:**
+```bash
+python -m pytest tests/unit
+python -m pytest tests/integration
+python -m black . --check
+python -m mypy .
+```
+
+**What You Learned:**
+- BatchRunner integrates seamlessly with CI/CD
+- Exit code triggers workflow success/failure
+- JSON output for artifacts
+
+---
+
+## Example 9: Multi-Step Deployment
+
+**Scenario:** Deploy application to production
+
+**Create deploy-prod.txt:**
+```bash
+echo "[OK] Step 1/5: Pre-deployment checks..."
+curl https://api.example.com/health
+echo "[OK] Step 2/5: Stopping services..."
+ssh prod "sudo systemctl stop myapp"
+echo "[OK] Step 3/5: Deploying code..."
+scp -r dist/ prod:/var/www/myapp/
+echo "[OK] Step 4/5: Starting services..."
+ssh prod "sudo systemctl start myapp"
+sleep 10
+echo "[OK] Step 5/5: Post-deployment verification..."
+curl https://myapp.com/health
+echo "[OK] Deployment complete!"
+```
+
+**Run:**
+```bash
+python batchrunner.py -f deploy-prod.txt -l deploy-$(date +%Y%m%d-%H%M%S).log --retries 2
+```
+
+**What You Learned:**
+- Complex multi-step workflows
+- Automatic retry on transient failures
+- Timestamped logs for audit
+
+---
+
+## Example 10: Database Operations
+
+**Scenario:** Run database migrations safely
+
+**Create migrate.txt:**
+```bash
+echo "Backing up database..."
+pg_dump mydb > backup_$(date +%Y%m%d).sql
+echo "Running migration 001..."
+psql mydb < migrations/001_create_tables.sql
+echo "Running migration 002..."
+psql mydb < migrations/002_add_indexes.sql
+echo "Running migration 003..."
+psql mydb < migrations/003_alter_columns.sql
+echo "Verifying migrations..."
+psql mydb -c "SELECT version FROM schema_version;"
+echo "Migration complete!"
+```
+
+**Run:**
+```bash
+python batchrunner.py -f migrate.txt -l migrate.log --retries 1 --timeout 120
+```
+
+**What You Learned:**
+- Database operations with safety
+- Backup before migrations
+- Retry on transient DB failures
+- Timeout protection
+
+---
+
+## Example 11: Error Handling Strategies
+
+**Scenario:** Some commands are expected to fail
+
+**Create mixed-commands.txt:**
+```bash
+echo "Command 1: Success"
+exit 1
+echo "Command 3: This still runs!"
+```
+
+**Run:**
+```bash
+python batchrunner.py -f mixed-commands.txt
 ```
 
 **Expected Output:**
-
 ```
-[GROUP 1] Executing 2 commands...
-[RUN] success: echo This will succeed
-[RUN] failure: exit 1
-[ABORT] Stopping execution due to failure
-
-======================================================================
-Total Commands: 3
-Executed: 2
-Successful: 1
+Successful: 2
 Failed: 1
-======================================================================
-
-[OK] echo This will succeed
-  Exit Code: 0
-
-[FAIL] exit 1
-  Exit Code: 1
+Success Rate: 66.7%
 ```
 
 **What You Learned:**
-- Abort-on-failure stops at first error
-- Dependent commands don't execute
-- Clear failure reporting
+- BatchRunner continues on failure (doesn't abort)
+- Summary shows success rate
+- Exit code 1 if ANY command failed
 
 ---
 
-## Example 5: Retry Logic
+## Example 12: Performance Testing
 
-**Scenario:** Retry failing commands with backoff.
+**Scenario:** Measure performance of different approaches
 
-**Configuration (`retry.json`):**
-
-```json
-{
-  "commands": [
-    {
-      "name": "flaky-api",
-      "command": "curl https://api.example.com/health",
-      "retry_count": 3,
-      "retry_delay": 2,
-      "timeout": 10
-    }
-  ]
-}
-```
-
-**Execute:**
-
+**Create perf-sequential.txt:**
 ```bash
-python batchrunner.py run retry.json --verbose
+python process.py chunk1
+python process.py chunk2
+python process.py chunk3
+python process.py chunk4
 ```
 
-**Expected Output (if fails initially):**
-
-```
-[RUN] flaky-api: curl https://api.example.com/health
-[RETRY] flaky-api failed (attempt 1/4), retrying in 2s...
-[RUN] flaky-api: curl https://api.example.com/health
-[RETRY] flaky-api failed (attempt 2/4), retrying in 2s...
-[RUN] flaky-api: curl https://api.example.com/health
-[OK] Command succeeded on attempt 3
-```
-
-**What You Learned:**
-- Retry transient failures automatically
-- Configurable retry count and delay
-- Useful for network requests and flaky tests
-
----
-
-## Example 6: Environment Variables
-
-**Scenario:** Pass environment variables to commands.
-
-**Configuration (`env.json`):**
-
-```json
-{
-  "commands": [
-    {
-      "name": "deploy-staging",
-      "command": "echo Deploying to $DEPLOY_ENV with API key $API_KEY",
-      "env": {
-        "DEPLOY_ENV": "staging",
-        "API_KEY": "staging-key-123"
-      }
-    },
-    {
-      "name": "deploy-prod",
-      "command": "echo Deploying to $DEPLOY_ENV with API key $API_KEY",
-      "env": {
-        "DEPLOY_ENV": "production",
-        "API_KEY": "prod-key-456"
-      }
-    }
-  ]
-}
-```
-
-**Execute:**
-
+**Test Sequential:**
 ```bash
-python batchrunner.py run env.json
+python batchrunner.py -f perf-sequential.txt -o seq-results.json
 ```
 
-**Expected Output:**
-
-```
-[OK] echo Deploying to staging with API key staging-key-123
-[OK] echo Deploying to production with API key prod-key-456
-```
-
-**What You Learned:**
-- Per-command environment variables
-- Useful for different deployment environments
-- Variables isolated per command
-
----
-
-## Example 7: Working Directories
-
-**Scenario:** Execute commands in different directories.
-
-**Configuration (`workdir.json`):**
-
-```json
-{
-  "commands": [
-    {
-      "name": "frontend-build",
-      "command": "npm run build",
-      "working_dir": "./frontend"
-    },
-    {
-      "name": "backend-build",
-      "command": "python setup.py build",
-      "working_dir": "./backend"
-    }
-  ]
-}
-```
-
-**Execute:**
-
+**Test Parallel:**
 ```bash
-python batchrunner.py run workdir.json --verbose
+python batchrunner.py -f perf-sequential.txt --parallel -o par-results.json
 ```
 
-**Expected Output:**
-
-```
-[RUN] frontend-build: npm run build
-  Working Directory: ./frontend
-
-[RUN] backend-build: python setup.py build
-  Working Directory: ./backend
-```
-
-**What You Learned:**
-- Run commands in specific directories
-- Useful for monorepos with multiple projects
-- Each command has independent working directory
-
----
-
-## Example 8: Timeout Control
-
-**Scenario:** Kill commands that run too long.
-
-**Configuration (`timeout.json`):**
-
-```json
-{
-  "commands": [
-    {
-      "name": "quick-task",
-      "command": "echo Quick task",
-      "timeout": 5
-    },
-    {
-      "name": "slow-task",
-      "command": "sleep 30",
-      "timeout": 10
-    }
-  ]
-}
-```
-
-**Execute:**
-
+**Compare:**
 ```bash
-python batchrunner.py run timeout.json --verbose
-```
-
-**Expected Output:**
-
-```
-[OK] quick-task: echo Quick task
-  Duration: 0.01s
-
-[FAIL] slow-task: sleep 30
-  Exit Code: -1
-  Error: Timeout after 10s
+python -c "
+import json
+seq = json.load(open('seq-results.json'))['summary']['total_duration_ms']
+par = json.load(open('par-results.json'))['summary']['total_duration_ms']
+print(f'Sequential: {seq:.1f}ms')
+print(f'Parallel: {par:.1f}ms')
+print(f'Speedup: {seq/par:.2f}x')
+"
 ```
 
 **What You Learned:**
-- Prevent runaway commands
-- Configurable timeout per command
-- Clean termination on timeout
+- Measure actual performance gains
+- JSON output enables analysis
+- Parallel isn't always faster
 
 ---
 
-## Example 9: CI/CD Pipeline
+## Example 13: Docker Container Management
 
-**Scenario:** Complete real-world CI/CD pipeline.
+**Scenario:** Start multiple services in order
 
-**Configuration (`cicd.json`):**
-
-```json
-{
-  "commands": [
-    {
-      "name": "install",
-      "command": "npm install",
-      "timeout": 300
-    },
-    {
-      "name": "lint",
-      "command": "npm run lint"
-    },
-    {
-      "name": "test",
-      "command": "npm test",
-      "depends_on": ["install"],
-      "retry_count": 2
-    },
-    {
-      "name": "build",
-      "command": "npm run build",
-      "depends_on": ["test"],
-      "timeout": 600
-    },
-    {
-      "name": "docker-build",
-      "command": "docker build -t myapp:latest .",
-      "depends_on": ["build"],
-      "timeout": 900
-    },
-    {
-      "name": "docker-push",
-      "command": "docker push myapp:latest",
-      "depends_on": ["docker-build"],
-      "retry_count": 3,
-      "retry_delay": 5
-    }
-  ]
-}
-```
-
-**Execute:**
-
+**Create start-services.txt:**
 ```bash
-python batchrunner.py run cicd.json --verbose --report markdown > pipeline-report.md
+echo "Starting database..."
+docker start postgres-db
+sleep 5
+echo "Starting cache..."
+docker start redis-cache
+sleep 3
+echo "Starting API..."
+docker start api-service
+sleep 5
+echo "Starting worker..."
+docker start worker-service
+echo "Verifying all services..."
+docker ps | grep "Up"
 ```
 
-**Execution Plan:**
-
-```
-Group 1: install, lint (parallel)
-Group 2: test
-Group 3: build
-Group 4: docker-build
-Group 5: docker-push
-```
-
-**What You Learned:**
-- Real-world complex pipeline
-- Mix of parallel and sequential execution
-- Multiple failure handling strategies
-- Comprehensive timeout and retry configuration
-
----
-
-## Example 10: Python API
-
-**Scenario:** Use BatchRunner programmatically.
-
-**Code (`build_script.py`):**
-
-```python
-from batchrunner import BatchRunner
-
-def main():
-    # Create runner
-    runner = BatchRunner(verbose=True)
-    
-    # Add commands
-    runner.add_command("clean", "rm -rf dist")
-    runner.add_command("compile", "tsc", depends_on=["clean"])
-    runner.add_command("webpack", "webpack --mode production", depends_on=["compile"])
-    runner.add_command("test", "jest", depends_on=["compile"])
-    runner.add_command(
-        "deploy",
-        "aws s3 sync dist/ s3://mybucket/",
-        depends_on=["webpack", "test"],
-        timeout=300,
-        retry_count=3
-    )
-    
-    # Validate before running
-    is_valid, errors = runner.validate_dependencies()
-    if not is_valid:
-        print("Configuration errors:")
-        for error in errors:
-            print(f"  - {error}")
-        return 1
-    
-    # Execute
-    result = runner.run(abort_on_failure=True)
-    
-    # Check results
-    if result["success"]:
-        print(f"\n[OK] Pipeline complete! {result['successful']} commands succeeded")
-        print(f"Total duration: {result['duration']:.2f}s")
-        return 0
-    else:
-        print(f"\n[FAIL] Pipeline failed: {result['failed']} commands failed")
-        return 1
-
-if __name__ == "__main__":
-    exit(main())
-```
-
-**Execute:**
-
+**Run:**
 ```bash
-python build_script.py
+python batchrunner.py -f start-services.txt --retries 2 -l startup.log
 ```
 
 **What You Learned:**
-- Full Python API control
-- Programmatic command addition
-- Custom validation and error handling
-- Integration with existing Python scripts
+- Service orchestration
+- Health checks with retries
+- Dependency management (DB before API)
 
 ---
 
-## Example 11: Report Generation
+## Example 14: Git Workflow Automation
 
-**Scenario:** Generate detailed reports in multiple formats.
+**Scenario:** Consistent git workflow
 
-**Code:**
-
-```python
-from batchrunner import BatchRunner
-
-runner = BatchRunner()
-runner.add_command("test1", "echo Test 1")
-runner.add_command("test2", "echo Test 2")
-runner.add_command("test3", "echo Test 3")
-
-result = runner.run()
-
-# Text report
-print(runner.generate_report(format="text"))
-
-# JSON report
-with open("report.json", "w") as f:
-    f.write(runner.generate_report(format="json"))
-
-# Markdown report
-with open("report.md", "w") as f:
-    f.write(runner.generate_report(format="markdown"))
-```
-
-**Markdown Report Output:**
-
-```markdown
-# BatchRunner Execution Report
-
-**Executed:** 2026-02-09T04:00:00
-
-**Total Commands:** 3
-**Successful:** 3
-**Failed:** 0
-
-## Commands
-
-### [OK] echo Test 1
-- **Exit Code:** 0
-- **Duration:** 0.02s
-
-### [OK] echo Test 2
-- **Exit Code:** 0
-- **Duration:** 0.01s
-
-### [OK] echo Test 3
-- **Exit Code:** 0
-- **Duration:** 0.02s
-```
-
-**What You Learned:**
-- Multiple report formats available
-- Easy integration with documentation
-- Exportable for analysis
-
----
-
-## Example 12: Dry Run Mode
-
-**Scenario:** Preview execution without running commands.
-
-**Configuration (`complex.json`):**
-
-```json
-{
-  "commands": [
-    {"name": "step1", "command": "dangerous-command.sh"},
-    {"name": "step2", "command": "another-dangerous-command.sh", "depends_on": ["step1"]},
-    {"name": "step3", "command": "final-dangerous-command.sh", "depends_on": ["step2"]}
-  ]
-}
-```
-
-**Execute:**
-
+**Run:**
 ```bash
-python batchrunner.py run complex.json --dry-run --verbose
-```
-
-**Expected Output:**
-
-```
-[OK] Dependency validation passed
-[OK] Execution plan: 3 groups
-  Group 1: step1
-  Group 2: step2
-  Group 3: step3
-
-[DRY RUN] Would execute: step1
-[DRY RUN] Would execute: step2
-[DRY RUN] Would execute: step3
-
-======================================================================
-Total Commands: 3
-All commands validated successfully
-No commands actually executed (dry run mode)
-======================================================================
+python batchrunner.py -c \
+  "git status" \
+  "git add ." \
+  "git commit -m 'Auto commit: $(date)'" \
+  "git push origin main" \
+  "git log -1 --oneline"
 ```
 
 **What You Learned:**
-- Test configuration without execution
-- Verify dependency order
-- Safe to test on production configs
+- Automate repetitive git tasks
+- Inline commands for quick workflows
+- Consistent process every time
 
 ---
 
-## More Examples
+## Example 15: Real Production Workflow
 
-For more integration examples with Team Brain tools, see:
+**Scenario:** Complete build-test-deploy pipeline
 
-- [INTEGRATION_EXAMPLES.md](INTEGRATION_EXAMPLES.md) - Integration patterns with AgentHealth, SynapseLink, etc.
-- [QUICK_START_GUIDES.md](QUICK_START_GUIDES.md) - Agent-specific usage guides
-- [CHEAT_SHEET.txt](CHEAT_SHEET.txt) - Quick reference
+**Create pipeline.txt:**
+```bash
+echo "====== PHASE 1: BUILD ======"
+echo "Installing dependencies..."
+pip install -r requirements.txt
+echo "Linting code..."
+python -m black .
+python -m isort .
+echo "Type checking..."
+python -m mypy .
+echo "Building package..."
+python setup.py sdist bdist_wheel
+
+echo "====== PHASE 2: TEST ======"
+echo "Running unit tests..."
+python -m pytest tests/unit --cov
+echo "Running integration tests..."
+python -m pytest tests/integration
+echo "Running security scan..."
+python -m bandit -r src/
+
+echo "====== PHASE 3: DEPLOY ======"
+echo "Uploading to PyPI..."
+twine upload dist/*
+echo "Tagging release..."
+git tag v1.0.0
+git push origin v1.0.0
+echo "Done!"
+```
+
+**Run:**
+```bash
+python batchrunner.py -f pipeline.txt \
+  -l pipeline-$(date +%Y%m%d-%H%M%S).log \
+  -o pipeline-results.json \
+  --retries 2 \
+  --timeout 300
+```
+
+**Result:**
+- Complete pipeline automation
+- Audit trail in log file
+- Structured results in JSON
+- Automatic retry on transient failures
+- Timeout protection per phase
+
+**What You Learned:**
+- End-to-end production workflow
+- Multiple phases in one batch
+- Professional deployment automation
+- Complete observability
 
 ---
 
-**Examples maintained by:** ATLAS (Team Brain)  
-**Last updated:** February 9, 2026
+**More examples available at:** https://github.com/DonkRonk17/BatchRunner/tree/main/examples
+
+**Questions?** Open an issue or check `CHEAT_SHEET.txt` for quick reference!
