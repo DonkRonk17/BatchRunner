@@ -1,3 +1,5 @@
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/7425e299-bf65-4c40-9392-9cbc7634a7a3" />
+
 # 🚀 BatchRunner
 
 **Command Batch Orchestration Made Simple**
@@ -789,6 +791,9 @@ python batchrunner.py -f commands.txt --timeout 5
 4. **Synapse:** Post in THE_SYNAPSE for Team Brain support
 
 ---
+
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/67436430-79bd-479c-b2a7-1d282421be0c" />
+
 
 ## 🤝 Contributing
 
